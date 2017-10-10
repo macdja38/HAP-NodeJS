@@ -3,10 +3,20 @@ var Service = require('../').Service;
 var Characteristic = require('../').Characteristic;
 var uuid = require('../').uuid;
 
+const convert = require("color-convert");
+const DMX = require('dmx');
+
+const dmx = new DMX();
+
+dmx.addUniverse("uni", "enttec-open-usb-dmx", "COM4");
+
+dmx.update("uni", {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0});
+
+
 var LightController = {
   name: "Simple Light", //name of accessory
   pincode: "031-45-154",
-  username: "FA:3C:ED:5A:1A:1A", // MAC like address used by HomeKit to differentiate accessories. 
+  username: "FA:3C:ED:5A:1A:1A", // MAC like address used by HomeKit to differentiate accessories.
   manufacturer: "HAP-NodeJS", //manufacturer (optional)
   model: "v1.0", //model (optional)
   serialNumber: "A12S345KGB", //serial number (optional)
@@ -16,11 +26,12 @@ var LightController = {
   hue: 0, //current hue
   saturation: 0, //current saturation
 
-  outputLogs: false, //output logs
+  outputLogs: true, //output logs
 
   setPower: function(status) { //set power of accessory
     if(this.outputLogs) console.log("Turning the '%s' %s", this.name, status ? "on" : "off");
     this.power = status;
+    this.updateState();
   },
 
   getPower: function() { //get power of accessory
@@ -31,6 +42,7 @@ var LightController = {
   setBrightness: function(brightness) { //set brightness
     if(this.outputLogs) console.log("Setting '%s' brightness to %s", this.name, brightness);
     this.brightness = brightness;
+    this.updateState();
   },
 
   getBrightness: function() { //get brightness
@@ -41,6 +53,7 @@ var LightController = {
   setSaturation: function(saturation) { //set brightness
     if(this.outputLogs) console.log("Setting '%s' saturation to %s", this.name, saturation);
     this.saturation = saturation;
+    this.updateState();
   },
 
   getSaturation: function() { //get brightness
@@ -51,6 +64,7 @@ var LightController = {
   setHue: function(hue) { //set brightness
     if(this.outputLogs) console.log("Setting '%s' hue to %s", this.name, hue);
     this.hue = hue;
+    this.updateState();
   },
 
   getHue: function() { //get hue
@@ -60,8 +74,15 @@ var LightController = {
 
   identify: function() { //identify the accessory
     if(this.outputLogs) console.log("Identify the '%s'", this.name);
+  },
+
+  updateState: function() {
+    const rgb = convert.rgb.hsl(this.hue, this.saturation, this.power ? this.brightness : 0);
+    dmx.update("uni", {0: rgb[0], 1: rgb[1], 2: rgb[2], 3: rgb[0], 4: rgb[1], 5: rgb[2]});
   }
-}
+};
+
+LightController.updateState();
 
 // Generate a consistent UUID for our light Accessory that will remain the same even when
 // restarting our server. We use the `uuid.generate` helper function to create a deterministic
@@ -78,9 +99,9 @@ lightAccessory.pincode = LightController.pincode;
 // set some basic properties (these values are arbitrary and setting them is optional)
 lightAccessory
   .getService(Service.AccessoryInformation)
-    .setCharacteristic(Characteristic.Manufacturer, LightController.manufacturer)
-    .setCharacteristic(Characteristic.Model, LightController.model)
-    .setCharacteristic(Characteristic.SerialNumber, LightController.serialNumber);
+  .setCharacteristic(Characteristic.Manufacturer, LightController.manufacturer)
+  .setCharacteristic(Characteristic.Model, LightController.model)
+  .setCharacteristic(Characteristic.SerialNumber, LightController.serialNumber);
 
 // listen for the "identify" event for this Accessory
 lightAccessory.on('identify', function(paired, callback) {
@@ -111,7 +132,7 @@ lightAccessory
 
 // To inform HomeKit about changes occurred outside of HomeKit (like user physically turn on the light)
 // Please use Characteristic.updateValue
-// 
+//
 // lightAccessory
 //   .getService(Service.Lightbulb)
 //   .getCharacteristic(Characteristic.On)
