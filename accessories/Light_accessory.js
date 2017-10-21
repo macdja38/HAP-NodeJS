@@ -8,7 +8,7 @@ const DMX = require('dmx');
 
 const dmx = new DMX();
 
-dmx.addUniverse("uni", "enttec-open-usb-dmx", "COM4");
+dmx.addUniverse("uni", "enttec-open-usb-dmx", "/dev/ttyUSB0");
 
 dmx.update("uni", {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0});
 
@@ -28,58 +28,58 @@ var LightController = {
 
   outputLogs: true, //output logs
 
-  setPower: function(status) { //set power of accessory
-    if(this.outputLogs) console.log("Turning the '%s' %s", this.name, status ? "on" : "off");
+  setPower: function (status) { //set power of accessory
+    if (this.outputLogs) console.log("Turning the '%s' %s", this.name, status ? "on" : "off");
     this.power = status;
     this.updateState();
   },
 
-  getPower: function() { //get power of accessory
-    if(this.outputLogs) console.log("'%s' is %s.", this.name, this.power ? "on" : "off");
+  getPower: function () { //get power of accessory
+    if (this.outputLogs) console.log("'%s' is %s.", this.name, this.power ? "on" : "off");
     return this.power;
   },
 
-  setBrightness: function(brightness) { //set brightness
-    if(this.outputLogs) console.log("Setting '%s' brightness to %s", this.name, brightness);
+  setBrightness: function (brightness) { //set brightness
+    if (this.outputLogs) console.log("Setting '%s' brightness to %s", this.name, brightness);
     this.brightness = brightness;
     this.updateState();
   },
 
-  getBrightness: function() { //get brightness
-    if(this.outputLogs) console.log("'%s' brightness is %s", this.name, this.brightness);
+  getBrightness: function () { //get brightness
+    if (this.outputLogs) console.log("'%s' brightness is %s", this.name, this.brightness);
     return this.brightness;
   },
 
-  setSaturation: function(saturation) { //set brightness
-    if(this.outputLogs) console.log("Setting '%s' saturation to %s", this.name, saturation);
+  setSaturation: function (saturation) { //set brightness
+    if (this.outputLogs) console.log("Setting '%s' saturation to %s", this.name, saturation);
     this.saturation = saturation;
     this.updateState();
   },
 
-  getSaturation: function() { //get brightness
-    if(this.outputLogs) console.log("'%s' saturation is %s", this.name, this.saturation);
+  getSaturation: function () { //get brightness
+    if (this.outputLogs) console.log("'%s' saturation is %s", this.name, this.saturation);
     return this.saturation;
   },
 
-  setHue: function(hue) { //set brightness
-    if(this.outputLogs) console.log("Setting '%s' hue to %s", this.name, hue);
+  setHue: function (hue) { //set brightness
+    if (this.outputLogs) console.log("Setting '%s' hue to %s", this.name, hue);
     this.hue = hue;
     this.updateState();
   },
 
-  getHue: function() { //get hue
-    if(this.outputLogs) console.log("'%s' hue is %s", this.name, this.hue);
+  getHue: function () { //get hue
+    if (this.outputLogs) console.log("'%s' hue is %s", this.name, this.hue);
     return this.hue;
   },
 
-  identify: function() { //identify the accessory
-    if(this.outputLogs) console.log("Identify the '%s'", this.name);
+  identify: function () { //identify the accessory
+    if (this.outputLogs) console.log("Identify the '%s'", this.name);
   },
 
-  updateState: function() {
-    const rgb = convert.rgb.hsl(this.hue, this.saturation, this.power ? this.brightness : 0);
+  updateState: function () {
+    const rgb = convert.hsl.rgb(this.hue, this.saturation, this.power ? (this.brightness - this.brightness*this.saturation) : 0);
     dmx.update("uni", {0: rgb[0], 1: rgb[1], 2: rgb[2], 3: rgb[0], 4: rgb[1], 5: rgb[2]});
-  }
+  },
 };
 
 LightController.updateState();
@@ -104,7 +104,7 @@ lightAccessory
   .setCharacteristic(Characteristic.SerialNumber, LightController.serialNumber);
 
 // listen for the "identify" event for this Accessory
-lightAccessory.on('identify', function(paired, callback) {
+lightAccessory.on('identify', function (paired, callback) {
   LightController.identify();
   callback();
 });
@@ -114,7 +114,7 @@ lightAccessory.on('identify', function(paired, callback) {
 lightAccessory
   .addService(Service.Lightbulb, LightController.name) // services exposed to the user should have "names" like "Light" for this case
   .getCharacteristic(Characteristic.On)
-  .on('set', function(value, callback) {
+  .on('set', function (value, callback) {
     LightController.setPower(value);
 
     // Our light is synchronous - this value has been successfully set
@@ -126,7 +126,7 @@ lightAccessory
   })
   // We want to intercept requests for our current power state so we can query the hardware itself instead of
   // allowing HAP-NodeJS to return the cached Characteristic.value.
-  .on('get', function(callback) {
+  .on('get', function (callback) {
     callback(null, LightController.getPower());
   });
 
@@ -142,11 +142,11 @@ lightAccessory
 lightAccessory
   .getService(Service.Lightbulb)
   .addCharacteristic(Characteristic.Brightness)
-  .on('set', function(value, callback) {
+  .on('set', function (value, callback) {
     LightController.setBrightness(value);
     callback();
   })
-  .on('get', function(callback) {
+  .on('get', function (callback) {
     callback(null, LightController.getBrightness());
   });
 
@@ -154,11 +154,11 @@ lightAccessory
 lightAccessory
   .getService(Service.Lightbulb)
   .addCharacteristic(Characteristic.Saturation)
-  .on('set', function(value, callback) {
+  .on('set', function (value, callback) {
     LightController.setSaturation(value);
     callback();
   })
-  .on('get', function(callback) {
+  .on('get', function (callback) {
     callback(null, LightController.getSaturation());
   });
 
@@ -166,10 +166,10 @@ lightAccessory
 lightAccessory
   .getService(Service.Lightbulb)
   .addCharacteristic(Characteristic.Hue)
-  .on('set', function(value, callback) {
+  .on('set', function (value, callback) {
     LightController.setHue(value);
     callback();
   })
-  .on('get', function(callback) {
+  .on('get', function (callback) {
     callback(null, LightController.getHue());
   });
